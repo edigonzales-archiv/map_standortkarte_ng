@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <style>
+      .map {
+        height: 500px;
+        width: 500px;
+      }
+    </style>
+    <title>GeoAdmin API example</title>
+  </head>
+  <body>
+    <h2>My first GeoAdmin map</h2>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js" type="text/javascript"></script>
+    <script src="http://api3.geo.admin.ch/loader.js?lang=en" type="text/javascript"></script>
+    <div id="map" class="map"></div>
+    <script type="text/javascript">
+        
+        //var gj = new ol.format.GeoJSON();
+        //var f = gj.readFeatures("http://api3.geo.admin.ch/rest/services/api/MapServer/find?layer=ch.bfs.gebaeude_wohnungs_register&searchText=2122818&searchField=egid&returnGeometry=True&geometryFormat=geojson&contains=false");
+        
+      //var f = gj.readFeatures('{"type": "Point", "coordinates": [-100, 80]}');
+        
+        var serverVector = new ol.source.ServerVector({
+            format: new ol.format.GeoJSON(),
+            loader: function(extent, resolution, projection){
+                var reqq = $.ajax({url:'http://api3.geo.admin.ch/rest/services/api/MapServer/find?layer=ch.bfs.gebaeude_wohnungs_register&searchText=2122818&searchField=egid&returnGeometry=True&geometryFormat=geojson&contains=false', dataType:'json'});
+
+                reqq.done(function(response){
+                    //console.log(response.results[0].geometry);
+                    coords = response.results[0].geometry.coordinates
+                    console.log(coords)
+                    
+                    
+                    var point = new ol.geom.Point(coords)
+                    console.log(point)
+                    
+                    var feature = new ol.Feature({
+                        geometry: point,
+                        name: 'My Point'
+                    });                    
+
+                    serverVector.addFeatures([feature]);  
+                    //console.log(serverVector);
+                });
+                reqq.fail(function(jqXhr, textStatus){
+                    console.log("FAIL Re"+textStatus);
+                })
+            },
+            projection:'EPSG:21781'
+        });        
+        
+        var vectorLayer = new ol.layer.Vector({
+            source: serverVector
+        });
+        
+        
+        console.log(serverVector.getFeatures());
+        
+        
+        
+      var layer = ga.layer.create('ch.swisstopo.pixelkarte-farbe');
+      var map = new ga.Map({
+        target: 'map',
+        layers: [layer,vectorLayer],
+        view: new ol.View2D({
+          resolution: 500,
+          center: [670000, 160000]
+        })
+      });
+        
+        
+        
+        
+        
+    </script>
+  </body>
+</html>
