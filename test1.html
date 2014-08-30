@@ -12,7 +12,9 @@
               }
             #popup {
                 padding-bottom: 42px;
-                width: 180px;
+            }
+            .popover{
+                width: 150px;
             }
         </style>
         <title>Standortkarten mit GeoAdmin API</title>
@@ -133,7 +135,7 @@
                 var feature = map.forEachFeatureAtPixel(evt.pixel,
                       function(feature, layer) {
                           return feature;
-                      });
+                      });                
                 if (feature) {
                     var geometry = feature.getGeometry();
                     var coord = geometry.getCoordinates();
