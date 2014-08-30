@@ -5,9 +5,21 @@
 
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css"> 
         <style>
-            .map {
-                height: 500px;
+            html, body {
+                margin: 0;
+                padding: 0;
+                height: 100%;
                 width: 100%;
+                overflow: hidden;
+            }   
+            .map {
+                position: relative;
+                margin: 0 auto;
+                width: 100%;
+                height: 100% !important; 
+                height: 100%
+                min-height: 100%;
+                overflow: hidden;
             }
             #map {
                 position: relative;
@@ -18,9 +30,10 @@
             .popover{
                 width: 150px;
             }
+            <!-- Für was ist das gut? -->
             .ol-attribution {
                 max-width: calc(100%-3em);
-            }            
+            }  
         </style>
         <title>Standortkarten mit GeoAdmin API</title>
     </head>
@@ -90,8 +103,9 @@
                         
                         feature.setStyle(iconStyle);
 
+                        
                         serverVector.addFeatures([feature]);  
-                        //console.log(serverVector);
+                        console.log(serverVector.getFeatures().length);
                         
                         map.getView().setCenter(coords);
                         map.getView().setResolution(2.5); 
@@ -160,8 +174,14 @@
                 view: new ol.View2D({
                     projection: projection,
                     center: [607100, 228700],
-                    zoom: 25,
-                    resolutions: [4000,3750,3500,3250,3000,2750,2500,2250,2000,1750,1500,1250,1000,750,650,500,250,100,50,20,10,5,2.5,2,1.5,1,0.5,0.25,0.1,0.05]
+                    resolution: 750,
+                    // Komisch, so funktionierts nicht. Dh. bei einigen Zoomlevels
+                    // wird immer wieder 'serverVector' neu initialisiert -> Abfrage
+                    // des EGID -> zentrieren der Karte.
+                    // Hat vielleicht auch damit zu tun, dass ich ol3 von swisstopo
+                    // verwende? 
+                    //zoom: 25,
+                    //resolutions: [4000,3750,3500,3250,3000,2750,2500,2250,2000,1750,1500,1250,1000,750,650,500,250,100,50,20,10,5,2.5,2,1.5,1,0.5,0.25,0.1,0.05]
                 })
             });      
             
