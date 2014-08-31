@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="chrome=1">
+        <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css"> 
+        <style  type="text/css">
+            html, body, .map {
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                position: relative;
+                margin: 0 auto;
+                overflow: hidden;
+            }
+            #popup {
+                padding-bottom: 42px;
+            }
+            .popover{
+                width: 150px;
+            }
+
+        </style>
+        <title>Standortkarten mit GeoAdmin API</title>
+    </head>
+    <body>
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js" type="text/javascript"></script>        
+        <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js" type="text/javascript"></script>
+        <script src="http://api3.geo.admin.ch/loader.js?lang=en" type="text/javascript"></script>
+                
+
+        <div id="map" class="map">
+            <div id="popup"></div>
+        </div>
+        
+        <script type="text/javascript">
+        
+            // GET parameters from URL (egid=????)
+            function getParam(variable){  
+                var query = window.location.search.substring(1);   
+                var vars = query.split("&");  
+                for (var i=0;i<vars.length;i++) {    
+                    var pair = vars[i].split("=");   
+                    if(pair[0] == variable){return pair[1];}
+                }       
+                return(false);
+            }
+        
+            var iconStyle = new ol.style.Style({
+                image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
+                    anchor: [0.5, 40],
+                    anchorXUnits: 'fraction',
+                    anchorYUnits: 'pixels',
+                    // opacity: 0.75,
+                    src: 'icon.png'
+                }))
+            });
+                        
+            var egid = getParam("egid"); 
+            //console.log(egid);
+                
+            // Find egid from REST service
+            var serverVector = new ol.source.ServerVector({
+                format: new ol.format.GeoJSON(),
+                loader: function(extent, resolution, projection){
+                    var reqq = $.ajax({url:'http://api3.geo.admin.ch/rest/services/api/MapServer/find?layer=ch.bfs.gebaeude_wohnungs_register&searchText='+egid+'&searchField=egid&returnGeometry=True&geometryFormat=geojson&contains=false', dataType:'json'});
+
+                    reqq.done(function(response){
+                        //console.log(response.results[0].geometry);
+                        coords = response.results[0].geometry.coordinates
+                        //console.log(coords)
+                        
+                        strname1 = response.results[0].properties.strname1;
+                        deinr = response.results[0].properties.deinr;
+                        plz4 = response.results[0].properties.plz4;
+                        plzname = response.results[0].properties.plzname;
+                        //console.log(strname1);
+
+                        var point = new ol.geom.Point(coords)
+                        //console.log(point)
+
+                        var feature = new ol.Feature({
+                            geometry: point,
+                            strname1: strname1,
+                            deinr: deinr,
+                            plz4: plz4,
+                            plzname: plzname
+                        });     
+                        
+                        feature.setStyle(iconStyle);
+
+                        
+                        serverVector.addFeatures([feature]);  
+                        console.log(serverVector.getFeatures().length);
+                        
+                        map.getView().setCenter(coords);
+                        map.getView().setResolution(2.5); 
+                    });
+                    reqq.fail(function(jqXhr, textStatus){
+                        // Raff'sch ned: Falls EGID nicht gefunden wird, kommt 
+                        // folgende Fehlermeldung in der Console:  
+                        // No 'Access-Control-Allow-Origin' header is present on the requested 
+                        // resource. Origin 'http://localhost' is therefore not allowed access. 
+                        // Ich war ja Ã¼berrascht, dass das Ã¼berhaupt funktioniert... 
+                        // -> mal bissle googeln.
+
+                        //console.log("FAIL Re"+textStatus);
+                    })
+                },
+                projection:'EPSG:21781'
+            });        
+        
+            var vectorLayer = new ol.layer.Vector({
+                source: serverVector
+            });
+        
+            
+            // Create the map
+            
+            // GeoAdmin
+            
+            var layer = ga.layer.create('ch.swisstopo.pixelkarte-farbe');
+            var map = new ga.Map({
+                target: document.getElementById('map'),
+                layers: [layer, vectorLayer],
+                view: new ol.View2D({
+                    resolution: 750,
+                    center: [660000, 180000]
+                })
+            });
+            
+            
+            // SOGIS
+            /*
+            var projection = ol.proj.configureProj4jsProjection({
+                code: 'EPSG:21781',
+                extent: [420000, 30000, 900000, 350000]
+            });
+            
+            var layer = new ol.layer.Image({
+                source: new ol.source.ImageWMS({
+                    url: 'http://www.sogis1.so.ch/cgi-bin/sogis/sogis_strassenkarte.wms',
+                    params: {'LAYERS': 'strassenkarte_no_ortho'},
+                })
+            });        
+            
+            var map = new ol.Map({
+                renderer: 'canvas',
+                //renderer: 'dom',
+                controls: ol.control.defaults().extend([
+                    //new ol.control.FullScreen(), 
+                    new ol.control.ScaleLine({
+                        units: 'metric'
+                    })
+                ]),
+                ol3Logo: false,
+                target: document.getElementById('map'),
+                layers: [
+                    layer, vectorLayer
+                ],  
+                view: new ol.View2D({
+                    projection: projection,
+                    center: [607100, 228700],
+                    resolution: 750,
+                    // Komisch, so funktionierts nicht. Dh. bei einigen Zoomlevels
+                    // wird immer wieder 'serverVector' neu initialisiert -> Abfrage
+                    // des EGID -> zentrieren der Karte.
+                    // Hat vielleicht auch damit zu tun, dass ich ol3 von swisstopo
+                    // verwende? 
+                    //zoom: 25,
+                    //resolutions: [4000,3750,3500,3250,3000,2750,2500,2250,2000,1750,1500,1250,1000,750,650,500,250,100,50,20,10,5,2.5,2,1.5,1,0.5,0.25,0.1,0.05]
+                })
+            });      
+            */
+            
+            // Popup on click
+            var element = document.getElementById('popup');
+
+            var popup = new ol.Overlay({
+                element: element,
+                positioning: 'bottom-center',
+                stopEvent: false
+            });
+            map.addOverlay(popup);
+
+            map.on('click', function(evt) {
+                var feature = map.forEachFeatureAtPixel(evt.pixel,
+                      function(feature, layer) {
+                          return feature;
+                      });                
+                if (feature) {
+                    var geometry = feature.getGeometry();
+                    var coord = geometry.getCoordinates();
+                    popup.setPosition(coord);
+                    $(element).popover({
+                        'placement': 'top',
+                        'html': true,
+                        'content': feature.get('strname1') + ' ' + feature.get('deinr')
+                            + '<br>' + feature.get('plz4') + ' ' + feature.get('plzname')
+                    });
+                    $(element).popover('show');
+                } else {
+                    $(element).popover('destroy');
+                }
+            });
+            
+            // change mouse cursor when over marker
+            $(map.getViewport()).on('mousemove', function(e) {
+                var pixel = map.getEventPixel(e.originalEvent);
+                var hit = map.forEachFeatureAtPixel(pixel, function(feature, layer) {
+                    return true;
+                });
+                if (hit) {
+                    map.getTarget().style.cursor = 'pointer';
+                } else {
+                    map.getTarget().style.cursor = '';
+                }
+            });
+        </script>
+    </body>
+</html>
