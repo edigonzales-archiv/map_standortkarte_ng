@@ -44,7 +44,7 @@
             var serverVector = new ol.source.ServerVector({
                 format: new ol.format.GeoJSON(),
                 loader: function(extent, resolution, projection){
-                    var reqq = $.ajax({url:'http://api3.geo.admin.ch/rest/services/api/MapServer/find?layer=ch.bfs.gebaeude_wohnungs_register&searchText='+egid+'&searchField=egid&returnGeometry=True&geometryFormat=geojson&contains=false', dataType:'json'});
+                    var reqq = $.ajax({url:'http://api3.geo.admin.ch/rest/services/api/MapServer/find?layer=ch.bfs.gebaeude_wohnungs_register&searchText='+egid+'&searchField=egid&returnGeometry=True&geometryFormat=geojson&contains=false', dataType:'jsonp'});
 
                     reqq.done(function(response){
                         //console.log(response.results[0].geometry);
